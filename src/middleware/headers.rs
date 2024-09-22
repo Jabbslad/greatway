@@ -9,6 +9,7 @@ use actix_web::{
     rt::time::Instant,
     Error,
 };
+use log::debug;
 
 pub struct Headers;
 
@@ -56,7 +57,7 @@ where
             let res = fut.await?;
             let elapsed = now.elapsed().as_millis();
             //println!("Request '{}' took {}μs", res.request().path(), elapsed);
-            println!(
+            debug!(
                 "Request '{}' took {}ms",
                 res.request().full_url().as_str(),
                 elapsed

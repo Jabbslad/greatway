@@ -19,6 +19,7 @@ mod routes;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
+    env_logger::init();
 
     let client = Arc::new(
         Client::builder()
@@ -39,10 +40,10 @@ async fn main() -> std::io::Result<()> {
     let server = HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(client.clone()))
+            .wrap(actix_web::middleware::Logger::default())
             .configure(config)
     })
     .bind((host.clone(), port))?;
-    println!("Server starting at: {}:{}", host, port);
     server.run().await
 }
 
