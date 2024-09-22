@@ -5,6 +5,7 @@ use dotenv::dotenv;
 use reqwest::Client;
 
 mod middleware;
+mod models;
 mod routes;
 
 #[actix_web::main]
@@ -31,7 +32,16 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(web::Data::new(client.clone()))
             .wrap(middleware::headers::Headers)
-            .default_service(web::to(routes::proxy))
+            .service(
+                web::scope("/auth")
+                    .route("/register", web::post().to(routes::auth::register))
+                    .route("/login", web::post().to(routes::auth::login)),
+            )
+            .service(
+                web::scope("")
+                    .wrap(middleware::auth::Auth)
+                    .default_service(web::route().to(routes::proxy)),
+            )
     })
     .bind((host.clone(), port))?;
     println!("Server starting at: {}:{}", host, port);

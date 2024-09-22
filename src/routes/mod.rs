@@ -4,13 +4,17 @@ use futures_util::StreamExt;
 use reqwest::Client;
 use std::sync::Arc;
 
+pub mod auth;
+
 pub async fn proxy(
     req: HttpRequest,
     mut body: web::Payload,
     client: web::Data<Arc<Client>>,
 ) -> Result<HttpResponse, actix_web::Error> {
     // Construct the URL for the upstream server
-    let forward_url = format!("https://enhamu9hfvikj.x.pipedream.net{}", req.uri());
+    let forward_address =
+        std::env::var("GATEWAY_FORWARD_ADDRESS").expect("GATEWAY_FORWARD_ADDRESS not specified");
+    let forward_url = format!("{}{}", forward_address, req.uri());
 
     // Create a new request to the upstream server
     let mut forwarded_req = client.request(

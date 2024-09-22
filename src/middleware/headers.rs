@@ -56,7 +56,11 @@ where
             let res = fut.await?;
             let elapsed = now.elapsed().as_millis();
             //println!("Request '{}' took {}μs", res.request().path(), elapsed);
-            println!("Request '{}' took {}ms", res.request().path(), elapsed);
+            println!(
+                "Request '{}' took {}ms",
+                res.request().full_url().as_str(),
+                elapsed
+            );
             Ok(res)
         })
     }
