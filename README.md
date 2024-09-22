@@ -1,82 +1,86 @@
-# 🚀 Greatway: Rust-Powered API Gateway
+# GreatWay
 
-Greatway is a high-performance, feature-rich API Gateway built in Rust. Designed for speed, security, and ease of use, it provides a robust solution for managing and protecting your microservices architecture.
+GreatWay is a Rust-based Application Gateway that provides user authentication and role-based access control.
 
-## ✨ Features
+## Features
 
-Greatway comes with batteries included, offering:
+- User registration and login
+- JWT-based authentication
+- Role-based access control
+- Token expiration handling
+- SQLite database for user and role storage
 
-- 🛑 **Rate Limiting**: Protect your services from abuse and ensure fair usage.
-- 🔐 **Authentication**: Secure your APIs with built-in authentication mechanisms.
-- 📊 **Request Logging**: Gain insights with comprehensive, configurable logging.
+## Prerequisites
 
-## 🤔 Why Greatway?
+- Rust (latest stable version)
 
-- ⚡ **Performance**: Built in Rust, Greatway offers exceptional speed and low resource usage.
-- 🛡️ **Security**: Designed with a security-first approach to safeguard your APIs.
-- 🧩 **Simplicity**: Easy to set up and configure, reducing operational overhead.
-- 📈 **Scalability**: Efficiently handles high-traffic scenarios.
+## Setup
 
-## 🚀 Quick Start
-
-1. Add Greatway to your `Cargo.toml`:
-   ```toml
-   [dependencies]
-   greatway = "0.1.0"
+1. Clone the repository:
+   ```
+   git clone https://github.com/Jabbslad/greatway.git
+   cd greatway
    ```
 
-2. Integrate Greatway into your Actix-Web application:
-
-   ```rust
-   use actix_web::{web, App, HttpServer};
-   use greatway::Greatway;
-
-   #[actix_web::main]
-   async fn main() -> std::io::Result<()> {
-       HttpServer::new(|| {
-           App::new()
-               .wrap(Greatway::new())
-               .service(web::resource("/api").to(|| async { "API Gateway Operational" }))
-       })
-       .bind("127.0.0.1:8080")?
-       .run()
-       .await
-   }
+2. Set up the environment variables:
+   Create a `.env` file in the project root and add the following:
+   ```
+   DATABASE_URL=sqlite:users.db
+   JWT_SECRET=your_secret_key_here
    ```
 
-## ⚙️ Configuration
+3. Build the project:
+   ```
+   cargo build
+   ```
 
-Greatway is designed to be highly configurable. Here's a basic example:
+## Running the Application
 
-```rust
-let gateway = Greatway::new()
-    .with_rate_limit(100, Duration::from_secs(60))
-    .with_jwt_auth("your-secret-key")
-    .with_logging(LogLevel::Info);
+To run the application:
+
+```
+cargo run
 ```
 
-For more advanced configurations, please refer to our [documentation](https://docs.greatway.rs).
+The server will start on `localhost:3000` by default.
 
-## 📊 Performance
+## API Endpoints
 
-Benchmarks show that Greatway can handle:
+- `POST /register`: Register a new user
+  - Body: `{ "username": "user", "password": "pass" }`
 
-- 🚄 Up to 100,000 requests per second on standard hardware
-- ⏱️ Sub-millisecond latency for routing requests
-- 🪶 Minimal CPU and memory footprint
+- `POST /login`: Login and receive a JWT token
+  - Body: `{ "username": "user", "password": "pass" }`
 
-## 🤝 Contributing
+- `GET /protected`: Access a protected route (requires valid JWT token)
+  - Header: `Authorization: Bearer <your_token_here>`
 
-We welcome contributions to Greatway! Please see our [Contributing Guide](CONTRIBUTING.md) for more details.
+## Token Expiration
 
-## 📜 License
+- Tokens are set to expire after 1 hour
+- The `X-Token-Expiry` header in responses indicates the token's expiration time
 
-Greatway is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+## Database
 
-## 🆘 Support
+User and role information is stored in an SQLite database. The schema includes:
 
-For questions, issues, or feature requests, please open an issue on our [GitHub repository](https://github.com/greatway/greatway).
+- `users` table: Stores user information
+- `user_roles` table: Manages user-role associations
 
----
+## Security
 
-🌟 Greatway: Empowering your APIs with speed, security, and simplicity.
+- Passwords are hashed using bcrypt before storing
+- JWTs are used for maintaining user sessions
+- Role-based access control is implemented for protected routes
+
+## Error Handling
+
+The application includes custom error handling to provide meaningful error messages for various scenarios, including authentication failures and database errors.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
