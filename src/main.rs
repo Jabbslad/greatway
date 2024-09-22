@@ -1,9 +1,17 @@
 use std::{sync::Arc, time::Duration};
 
 use actix_web::{web, App, HttpServer};
+use actix_web_httpauth::middleware::HttpAuthentication;
 use dotenv::dotenv;
+use guards::role_guard::RoleGuard;
+use middleware::auth;
+use models::user::Role;
 use reqwest::Client;
+use routes::auth::{login, register};
 
+mod guards {
+    pub mod role_guard;
+}
 mod middleware;
 mod models;
 mod routes;
@@ -31,20 +39,27 @@ async fn main() -> std::io::Result<()> {
     let server = HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(client.clone()))
-            .wrap(middleware::headers::Headers)
-            .service(
-                web::scope("/auth")
-                    .route("/register", web::post().to(routes::auth::register))
-                    .route("/login", web::post().to(routes::auth::login)),
-            )
-            .service(web::resource("/version").route(web::get().to(routes::version)))
-            .service(
-                web::scope("")
-                    .wrap(middleware::auth::Auth)
-                    .default_service(web::route().to(routes::proxy)),
-            )
+            .configure(config)
     })
     .bind((host.clone(), port))?;
     println!("Server starting at: {}:{}", host, port);
     server.run().await
+}
+
+fn config(cfg: &mut web::ServiceConfig) {
+    cfg.service(
+        web::scope("/auth")
+            .service(web::resource("/register").route(web::post().to(register)))
+            .service(web::resource("/login").route(web::post().to(login))),
+    )
+    .service(web::resource("/version").route(web::get().to(routes::version)))
+    .service(
+        web::scope("")
+            .wrap(HttpAuthentication::bearer(auth::auth_middleware))
+            .service(
+                web::scope("")
+                    .guard(RoleGuard(vec![Role::Admin]))
+                    .default_service(web::route().to(routes::proxy)),
+            ),
+    );
 }

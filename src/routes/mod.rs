@@ -1,4 +1,5 @@
 use actix_web::{http::StatusCode, web, HttpRequest, HttpResponse, Responder};
+use auth::Claims;
 use bytes::Bytes;
 use futures_util::StreamExt;
 use reqwest::Client;
@@ -15,8 +16,12 @@ pub async fn proxy(
     req: HttpRequest,
     mut body: web::Payload,
     client: web::Data<Arc<Client>>,
+    claims: web::ReqData<Claims>,
 ) -> Result<HttpResponse, actix_web::Error> {
     // Construct the URL for the upstream server
+
+    println!("claims: {:?}", claims);
+
     let forward_address =
         std::env::var("GATEWAY_FORWARD_ADDRESS").expect("GATEWAY_FORWARD_ADDRESS not specified");
     let forward_url = format!("{}{}", forward_address, req.uri());

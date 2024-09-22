@@ -6,7 +6,7 @@ use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::models::user::User;
+use crate::models::user::{Role, User};
 
 #[derive(Debug, Deserialize)]
 pub struct LoginRequest {
@@ -19,10 +19,11 @@ pub struct LoginResponse {
     pub token: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
     pub sub: String,
     pub exp: u64,
+    pub roles: Vec<Role>,
 }
 
 pub async fn register(user: web::Json<LoginRequest>) -> impl Responder {
@@ -30,7 +31,9 @@ pub async fn register(user: web::Json<LoginRequest>) -> impl Responder {
     let new_user = User {
         id: uuid::Uuid::new_v4(),
         username: user.username.clone(),
+        email: "test@test.com".to_string(),
         password: hashed_password,
+        roles: vec![Role::User],
     };
 
     HttpResponse::Ok().json(new_user)
@@ -41,9 +44,20 @@ pub async fn login(user: web::Json<LoginRequest>) -> impl Responder {
     let stored_user = User {
         id: Uuid::new_v4(),
         username: user.username.clone(),
+        email: "test@test.com".to_string(),
         password: hash(&user.password, 10).unwrap(), // This is just for demo
+        roles: vec![Role::User],
     };
 
+    if verify(&user.password, &stored_user.password).unwrap() {
+        let token = generate_token(&stored_user);
+        HttpResponse::Ok().json(LoginResponse { token })
+    } else {
+        HttpResponse::Unauthorized().finish()
+    }
+}
+
+pub fn generate_token(user: &User) -> String {
     let expiration = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
@@ -51,21 +65,16 @@ pub async fn login(user: web::Json<LoginRequest>) -> impl Responder {
         + 3600; // 1 hour
 
     let claims = Claims {
-        sub: stored_user.username.clone(),
+        sub: user.username.clone(),
         exp: expiration,
+        roles: user.roles.clone(),
     };
 
-    if verify(&user.password, &stored_user.password).unwrap() {
-        let secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
-        let token = encode(
-            &Header::default(),
-            &claims,
-            &EncodingKey::from_secret(secret.as_bytes()),
-        )
-        .unwrap();
-
-        HttpResponse::Ok().json(LoginResponse { token })
-    } else {
-        HttpResponse::Unauthorized().finish()
-    }
+    let secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+    encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(secret.as_bytes()),
+    )
+    .unwrap()
 }
