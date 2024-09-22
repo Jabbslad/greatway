@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{error::Error, sync::Arc, time::Duration};
 
 use actix_web::{web, App, HttpServer};
 use actix_web_httpauth::middleware::HttpAuthentication;
@@ -12,14 +12,19 @@ use routes::auth::{login, register};
 mod guards {
     pub mod role_guard;
 }
+mod config;
+mod db;
 mod middleware;
 mod models;
 mod routes;
 
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> Result<(), Box<dyn Error>> {
     dotenv().ok();
     env_logger::init();
+
+    let pool = db::create_db_pool();
+    db::initialize_db(&pool)?;
 
     let client = Arc::new(
         Client::builder()
@@ -37,14 +42,19 @@ async fn main() -> std::io::Result<()> {
         .and_then(|p| p.parse().ok())
         .unwrap_or(3000);
 
+    let app_config = Arc::new(config::AppConfig {
+        client: client.clone(),
+        pool: pool.clone(),
+    });
+
     let server = HttpServer::new(move || {
         App::new()
-            .app_data(web::Data::new(client.clone()))
+            .app_data(web::Data::new(app_config.clone()))
             .wrap(actix_web::middleware::Logger::default())
             .configure(config)
     })
     .bind((host.clone(), port))?;
-    server.run().await
+    server.run().await.map_err(|e| e.into())
 }
 
 fn config(cfg: &mut web::ServiceConfig) {

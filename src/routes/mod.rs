@@ -1,9 +1,10 @@
 use actix_web::{http::StatusCode, web, HttpRequest, HttpResponse, Responder};
 use bytes::Bytes;
 use futures_util::StreamExt;
-use reqwest::Client;
 use serde_json::json;
 use std::sync::Arc;
+
+use crate::config::AppConfig;
 
 pub mod auth;
 
@@ -14,7 +15,7 @@ pub async fn version() -> impl Responder {
 pub async fn proxy(
     req: HttpRequest,
     mut body: web::Payload,
-    client: web::Data<Arc<Client>>,
+    data: web::Data<Arc<AppConfig>>,
 ) -> Result<HttpResponse, actix_web::Error> {
     // Construct the URL for the upstream server
     let forward_address =
@@ -22,7 +23,7 @@ pub async fn proxy(
     let forward_url = format!("{}{}", forward_address, req.uri());
 
     // Create a new request to the upstream server
-    let mut forwarded_req = client.request(
+    let mut forwarded_req = data.client.request(
         reqwest::Method::from_bytes(req.method().as_str().as_bytes()).unwrap(),
         &forward_url,
     );
@@ -56,6 +57,10 @@ pub async fn proxy(
     // Forward the response headers
     for (header_name, header_value) in res.headers().iter() {
         client_resp.insert_header((header_name.as_str(), header_value.as_bytes()));
+    }
+
+    if let Some(token_expiry) = req.headers().get("x-token-expiry") {
+        client_resp.insert_header(("x-token-expiry", token_expiry.clone()));
     }
 
     // Stream the response body

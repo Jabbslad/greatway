@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub enum Role {
@@ -10,9 +9,7 @@ pub enum Role {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
-    pub id: Uuid,
+    pub id: String,
     pub username: String,
-    pub email: String,
     pub password: String,
-    pub roles: Vec<Role>,
 }
