@@ -1,10 +1,15 @@
-use actix_web::{http::StatusCode, web, HttpRequest, HttpResponse};
+use actix_web::{http::StatusCode, web, HttpRequest, HttpResponse, Responder};
 use bytes::Bytes;
 use futures_util::StreamExt;
 use reqwest::Client;
+use serde_json::json;
 use std::sync::Arc;
 
 pub mod auth;
+
+pub async fn version() -> impl Responder {
+    HttpResponse::Ok().json(json!({"version": env!("CARGO_PKG_VERSION")}))
+}
 
 pub async fn proxy(
     req: HttpRequest,

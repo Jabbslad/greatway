@@ -37,6 +37,7 @@ async fn main() -> std::io::Result<()> {
                     .route("/register", web::post().to(routes::auth::register))
                     .route("/login", web::post().to(routes::auth::login)),
             )
+            .service(web::resource("/version").route(web::get().to(routes::version)))
             .service(
                 web::scope("")
                     .wrap(middleware::auth::Auth)
